@@ -1,0 +1,22 @@
+{
+  "Version": 2,
+  "Edge": "right",
+  "Pinned": false,
+  "EdgeEnabled": true,
+  "AutoPinSites": true,
+  "SearchEngine": "https://www.google.com",
+  "Width": 510,
+  "ActiveId": null,
+  "Pads": [
+    {
+      "Id": "example-google",
+      "Name": "Google",
+      "Url": "https://www.google.com"
+    },
+    {
+      "Id": "example-notes",
+      "Name": "便笺",
+      "Url": "sidedock:notes"
+    }
+  ]
+}
