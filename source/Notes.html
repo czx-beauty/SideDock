@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
+<title>随手记</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f9f8f4;color:#283141;font:14px 'Segoe UI','Microsoft YaHei',sans-serif;height:100vh;display:flex;flex-direction:column;padding:22px 20px 14px;gap:12px}
+header{display:flex;align-items:center;justify-content:space-between;gap:8px}h1{font-size:25px;font-weight:500;margin:0}small{color:#8490a2;font-size:10px;letter-spacing:1px}button{font:inherit;cursor:pointer;border:1px solid #deded7;border-radius:7px;padding:7px 10px;background:transparent;color:#48556b}button:hover{background:#edece5}button:disabled{opacity:.4;cursor:default}#new{background:#334d65;color:white;border:0}.toolbar{display:flex;flex-wrap:wrap;gap:6px}input{font:inherit;color:inherit}#filter{width:100%;border:1px solid #deded7;background:transparent;border-radius:7px;padding:8px}#list{display:flex;gap:7px;overflow:auto;min-height:46px;max-height:100px;flex-shrink:0;padding-bottom:4px}#list button{text-align:left;min-width:110px;max-width:165px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#list button[aria-current=true]{border-color:#547388;background:#e9eef0}#title{width:100%;font-size:21px;font-weight:500;border:0;outline:0;background:transparent}#note{flex:1;min-height:60px;width:100%;resize:none;border:0;outline:0;background:transparent;color:#364151;font:15px/1.9 'Segoe UI','Microsoft YaHei',sans-serif;overflow-y:auto}footer{font-size:11px;color:#788395;line-height:1.6}#state[data-error=true]{color:#b13333}#importFile{display:none}#count{float:right;margin-left:8px}
+</style>
+<header><div><small>YOUR QUIET SPACE</small><h1>随手记。</h1></div><button id="new">＋ 新建</button></header>
+<div class="toolbar"><button id="export">导出全部</button><button id="import">导入备份</button><button id="delete">删除此篇</button><button id="restore" disabled>撤销删除</button></div>
+<input id="importFile" type="file" accept=".json,application/json">
+<input id="filter" type="search" placeholder="搜索标题和正文…" aria-label="搜索笔记">
+<nav id="list" aria-label="笔记列表"></nav>
+<input id="title" placeholder="给这篇笔记起个名字" aria-label="笔记标题">
+<textarea id="note" placeholder="从这里开始… 内容可以一直向下写。" aria-label="笔记正文"></textarea>
+<footer><span id="count"></span><span id="state" role="status">仅保存在这台电脑 · 不上传云端</span></footer>
+<script>
+'use strict';
+const KEY='sidedock.notebook.v1', $=id=>document.getElementById(id);
+let book, dirty=false, blocked=false, damaged=null;
+const makeNote=(body='',title='新笔记')=>({id:crypto.randomUUID(),title,body,updated:Date.now()});
+function validNote(n){return n&&typeof n.id==='string'&&n.id.length>0&&typeof n.title==='string'&&typeof n.body==='string'&&Number.isFinite(n.updated)}
+function validBook(b){return b&&b.version===1&&Array.isArray(b.notes)&&b.notes.length>0&&b.notes.every(validNote)&&new Set(b.notes.map(n=>n.id)).size===b.notes.length&&Array.isArray(b.trash)&&b.trash.every(validNote)}
+function message(text,error=false){$('state').textContent=text;$('state').dataset.error=String(error)}
+function current(){return book.notes.find(n=>n.id===book.active)}
+function persist(){
+  if(blocked)return false;
+  try{localStorage.setItem(KEY,JSON.stringify(book));dirty=false;message('已保存到本机 · '+new Date().toLocaleTimeString());return true}
+  catch{dirty=true;message('保存失败（空间不足或不可写），请先“导出全部”备份。',true);return false}
+}
+function renderList(){
+  $('list').replaceChildren();const query=$('filter').value.trim().toLocaleLowerCase();
+  for(const n of book.notes){
+    if(query&&!(n.title+'\n'+n.body).toLocaleLowerCase().includes(query))continue;
+    const b=document.createElement('button');b.textContent=n.title.trim()||'未命名笔记';b.title=b.textContent;b.dataset.id=n.id;b.setAttribute('aria-current',String(n.id===book.active));
+    b.onclick=()=>{if(dirty&&!persist())return;book.active=n.id;persist();render()};$('list').append(b);
+  }
+  $('restore').disabled=blocked||book.trash.length===0;
+}
+function render(){
+  if(!book.notes.some(n=>n.id===book.active))book.active=book.notes[0].id;
+  const n=current();$('title').value=n.title;$('note').value=n.body;$('count').textContent=n.body.length.toLocaleString()+' 字';renderList();
+}
+function edit(){const n=current();n.title=$('title').value;n.body=$('note').value;n.updated=Date.now();dirty=true;persist();$('count').textContent=n.body.length.toLocaleString()+' 字';renderList()}
+try{
+  const raw=localStorage.getItem(KEY);damaged=raw;
+  if(raw!==null){book=JSON.parse(raw);if(!validBook(book))throw Error('Invalid notebook')}
+  else{const old=localStorage.getItem('notes')||'';const n=makeNote(old,old?'以前的随手记':'新笔记');book={version:1,active:n.id,notes:[n],trash:[]};persist()}
+}catch{
+  blocked=true;const n=makeNote('');book={version:1,active:n.id,notes:[n],trash:[]};
+  for(const id of ['title','note','new','delete','import'])$(id).disabled=true;
+  message('无法读取笔记，已停止写入以保护原数据。请导出备份。',true);
+}
+render();
+$('note').oninput=edit;$('title').oninput=edit;$('filter').oninput=renderList;
+$('new').onclick=()=>{if(dirty&&!persist())return;const n=makeNote();book.notes.unshift(n);book.active=n.id;$('filter').value='';persist();render();$('title').focus();$('title').select()};
+$('delete').onclick=()=>{
+  if(dirty&&!persist())return;
+  const n=current();book.notes=book.notes.filter(x=>x.id!==n.id);book.trash.push(n);
+  if(!book.notes.length)book.notes.push(makeNote());book.active=book.notes[0].id;persist();render();
+};
+$('restore').onclick=()=>{if(dirty&&!persist())return;const n=book.trash.pop();if(!n)return;if(book.notes.some(x=>x.id===n.id))n.id=crypto.randomUUID();book.notes.unshift(n);book.active=n.id;$('filter').value='';persist();render()};
+$('export').onclick=()=>{
+  const text=blocked&&damaged!==null?damaged:JSON.stringify(book,null,2);
+  const url=URL.createObjectURL(new Blob([text],{type:'application/json;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download='SideDock-notes-'+new Date().toISOString().slice(0,10)+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),30000);
+};
+$('import').onclick=()=>$('importFile').click();
+$('importFile').onchange=async()=>{
+  const file=$('importFile').files[0];if(!file)return;
+  try{
+    if(dirty&&!persist())return;
+    const incoming=JSON.parse(await file.text());if(!validBook(incoming))throw Error('备份格式不正确');
+    const added=incoming.notes.map(n=>({...n,id:crypto.randomUUID()}));
+    const merged={...book,active:added[0].id,notes:[...added,...book.notes]};
+    localStorage.setItem(KEY,JSON.stringify(merged));book=merged;$('filter').value='';render();message('已导入 '+added.length+' 篇，原笔记保留');
+  }catch(e){message('导入失败，原笔记保留。'+e.message,true)}finally{$('importFile').value=''}
+};
+addEventListener('storage',e=>{
+  if(e.key!==KEY||dirty||blocked)return;
+  try{const other=JSON.parse(e.newValue);if(validBook(other)){book=other;render();message('已同步本机其它便笺页')}}catch{}
+});
+addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue='仍有未保存内容，请先导出备份'}});
+</script>
+</html>

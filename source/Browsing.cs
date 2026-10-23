@@ -170,7 +170,9 @@ public partial class MainWindow
         core.ProcessFailed += (_, _) => { if (active == pad.Id) Status.Text = "网页进程已停止，可点击刷新重试"; };
         if (pad.Url == "sidedock:notes") {
             string local = Path.Combine(Store.Root, "Local"); Directory.CreateDirectory(local);
-            File.WriteAllText(Path.Combine(local, "notes.html"), NotesHtml);
+            using var resource = typeof(MainWindow).Assembly.GetManifestResourceStream("SideDock.Notes.html")!;
+            using var reader = new StreamReader(resource);
+            File.WriteAllText(Path.Combine(local, "notes.html"), reader.ReadToEnd());
             core.SetVirtualHostNameToFolderMapping("sidedock.internal", local, CoreWebView2HostResourceAccessKind.DenyCors);
             if (navigateInitially) core.Navigate("https://sidedock.internal/notes.html");
         } else if (navigateInitially) core.Navigate(resume);

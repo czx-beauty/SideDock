@@ -11,6 +11,7 @@ public class Pad
     public double ScrollY { get; set; }
     public double VideoTime { get; set; }
     public string? IconFile { get; set; }
+    public bool IsSearch { get; set; }
     public List<string> BackStack { get; set; } = new();
     public string ResumeUrl => LastUrl ?? Url;
 }
@@ -24,7 +25,7 @@ public class Preferences
     public string SearchEngine { get; set; } = "https://www.google.com";
     public double Width { get; set; } = 510;
     public string? ActiveId { get; set; }
-    public List<Pad> Pads { get; set; } = [new() { Name = "Google", Url = "https://www.google.com" }, new() { Name = "便笺", Url = "sidedock:notes" }];
+    public List<Pad> Pads { get; set; } = [new() { Name = "Google", Url = "https://www.google.com", IsSearch = true }, new() { Name = "便笺", Url = "sidedock:notes" }];
 }
 public record Visit(string Url, string Title, string PadId, DateTime At);
 public static class Store
@@ -52,7 +53,40 @@ public static class Store
             foreach (var pad in p.Pads.Where(x => x.Url.TrimEnd('/') == "https://www.bing.com" && x.Name == "搜索")) { pad.Name = "Google"; pad.Url = p.SearchEngine; pad.LastUrl = null; }
             p.Version = 2;
         }
+        if (p.Version < 3) {
+            // Only the original default entry is migrated; ordinary user bookmarks stay independent.
+            var first = p.Pads.FirstOrDefault();
+            if (first is { Name: "Google" } && first.Url.TrimEnd('/') == "https://www.google.com") first.IsSearch = true;
+            SetSearchEngine(p, p.SearchEngine);
+            p.Version = 3;
+        }
         return p;
+    }
+    static void SetSearchEngine(Preferences p, string engine)
+    {
+        p.SearchEngine = engine;
+        string home = engine.Replace("{query}", "");
+        string host = new Uri(home).Host;
+        string name = SiteKey(home) switch { "bing.com" => "Bing", "google.com" => "Google", "duckduckgo.com" => "DuckDuckGo", "baidu.com" => "百度", _ => host };
+        foreach (var pad in p.Pads.Where(x => x.IsSearch)) {
+            pad.Name = name;
+            if (pad.Url == home) continue;
+            pad.Url = home; pad.LastUrl = null; pad.BackStack.Clear(); pad.ScrollY = 0; pad.VideoTime = 0; pad.IconFile = null;
+        }
+    }
+    public static void UpdateSettings(Preferences p, string engine, string edge, bool edgeEnabled, bool autoPin)
+    {
+        engine = engine.Trim(); if (!engine.Contains("://")) engine = "https://" + engine;
+        SearchUrl(engine, "test");
+        var next = JsonSerializer.Deserialize<Preferences>(JsonSerializer.Serialize(p))!;
+        SetSearchEngine(next, engine); next.Edge = edge; next.EdgeEnabled = edgeEnabled; next.AutoPinSites = autoPin;
+        Save(next); // Commit to disk before reporting success or changing the live state.
+        p.SearchEngine = next.SearchEngine; p.Edge = next.Edge; p.EdgeEnabled = next.EdgeEnabled; p.AutoPinSites = next.AutoPinSites;
+        foreach (var pad in p.Pads.Where(x => x.IsSearch)) {
+            var updated = next.Pads.First(x => x.Id == pad.Id);
+            pad.Name = updated.Name; pad.Url = updated.Url; pad.LastUrl = updated.LastUrl; pad.BackStack = updated.BackStack;
+            pad.ScrollY = updated.ScrollY; pad.VideoTime = updated.VideoTime; pad.IconFile = updated.IconFile;
+        }
     }
     public static void Save(Preferences p) => AtomicWrite("settings.json", p, true);
     public static void AtomicWrite<T>(string name, T data, bool backup = false)

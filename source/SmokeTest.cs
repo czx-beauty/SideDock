@@ -30,7 +30,7 @@ public partial class MainWindow
             Check(await view.ExecuteScriptAsync("document.title") == "\"随手记\"", "JavaScript execution in browser");
             var saved = await view.ExecuteScriptAsync("localStorage.getItem('smokePersist')");
             checks.Add("Previous-run localStorage: " + saved);
-            await view.ExecuteScriptAsync("localStorage.setItem('smokePersist','retained'); localStorage.setItem('notes','Smoke test note'); document.querySelector('#note').value='Smoke test note'");
+            await view.ExecuteScriptAsync("localStorage.setItem('smokePersist','retained'); localStorage.removeItem('sidedock.notebook.v1'); localStorage.setItem('notes','Smoke test note')");
             var reloaded = new TaskCompletionSource<bool>();
             view.CoreWebView2.NavigationCompleted += (_, e) => { if (e.IsSuccess) reloaded.TrySetResult(true); }; view.Reload();
             Check(await reloaded.Task.WaitAsync(TimeSpan.FromSeconds(15)), "Browser reload");
@@ -63,6 +63,7 @@ public partial class MainWindow
             var encoder = new System.Windows.Media.Imaging.PngBitmapEncoder(); encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(preview));
             using (var output = File.Create(Path.Combine(AppContext.BaseDirectory, "smoke-window.png"))) encoder.Save(output);
             checks.Add("Browser and window screenshots captured");
+            await SettingsAndNotesChecks(checks, view).WaitAsync(TimeSpan.FromSeconds(45));
             await RegressionChecks(checks).WaitAsync(TimeSpan.FromSeconds(65));
             if (Environment.GetCommandLineArgs().Contains("--online-smoke")) {
                 await OpenUrl("https://example.com");

@@ -4,9 +4,10 @@
     <UseWPF>true</UseWPF><UseWindowsForms>true</UseWindowsForms>
     <Nullable>enable</Nullable><ImplicitUsings>disable</ImplicitUsings>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <AssemblyName>SideDock</AssemblyName><Version>0.2.0</Version>
+    <AssemblyName>SideDock</AssemblyName><Version>0.3.0</Version>
     <DebugType Condition="'$(Configuration)' == 'Release'">none</DebugType>
     <DebugSymbols Condition="'$(Configuration)' == 'Release'">false</DebugSymbols>
   </PropertyGroup>
   <ItemGroup><PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4258.31" /></ItemGroup>
+  <ItemGroup><EmbeddedResource Include="Notes.html" LogicalName="SideDock.Notes.html" /></ItemGroup>
 </Project>

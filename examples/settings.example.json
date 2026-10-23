@@ -1,5 +1,5 @@
 {
-  "Version": 2,
+  "Version": 3,
   "Edge": "right",
   "Pinned": false,
   "EdgeEnabled": true,
@@ -11,7 +11,8 @@
     {
       "Id": "example-google",
       "Name": "Google",
-      "Url": "https://www.google.com"
+      "Url": "https://www.google.com",
+      "IsSearch": true
     },
     {
       "Id": "example-notes",

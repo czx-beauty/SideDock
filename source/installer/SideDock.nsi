@@ -4,7 +4,7 @@ Unicode true
 !include "FileFunc.nsh"
 !include "x64.nsh"
 !ifndef APP_VERSION
-!define APP_VERSION "0.2.0"
+!define APP_VERSION "0.3.0"
 !endif
 !ifndef OUTPUT_FILE
 !define OUTPUT_FILE "${__FILEDIR__}\..\..\dist\SideDock-${APP_VERSION}-Setup.exe"

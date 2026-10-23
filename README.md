@@ -2,7 +2,7 @@
 
 **Windows 上的侧边呼出浏览器：让常用网站留在屏幕边缘，需要时展开，用完后收起。**
 
-[下载预发布版](https://github.com/czx-beauty/SideDock/releases/tag/v0.2.0) · [使用指南](docs/USAGE.zh-CN.md) · [构建](docs/BUILDING.md) · [隐私与数据](docs/PRIVACY.md) · [Apache-2.0](LICENSE)
+[下载预发布版](https://github.com/czx-beauty/SideDock/releases/tag/v0.3.0) · [使用指南](docs/USAGE.zh-CN.md) · [构建](docs/BUILDING.md) · [隐私与数据](docs/PRIVACY.md) · [Apache-2.0](LICENSE)
 
 ## 开发缘起与正版支持
 
@@ -18,13 +18,13 @@
 - Google 默认搜索，可在设置中填写其它搜索引擎网址或 `{query}` 模板。
 - 全局快捷键、托盘、可配置的登录 Windows 后后台启动。
 - 标签、最后 URL、浏览历史、网站本机存储及可恢复位置保存。
-- 本地便笺、网站图标缓存。
+- 多篇本地笔记、标题与正文搜索、误删恢复、JSON 导出及导入；网站图标缓存。
 
 ![SideDock 本地便笺界面](assets/preview.png)
 
 ## 下载与启动
 
-当前版本 **0.2.0（预发布）**，面向 **Windows 10/11 x64**。
+当前版本 **0.3.0（预发布）**，面向 **Windows 10/11 x64**。
 
 在 [Releases](https://github.com/czx-beauty/SideDock/releases) 下载安装版或便携版。安装后从开始菜单或桌面打开 SideDock；收起后可按 **Ctrl+Alt+Space**、触碰选定屏幕边缘，或点击托盘图标唤出。开机自启需要在设置中手动开启。
 

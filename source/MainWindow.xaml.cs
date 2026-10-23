@@ -203,23 +203,25 @@ public partial class MainWindow : Window
         try {
             if (dialog.ShowDialog() == true) {
                 if (pad == null) { pad = new Pad { Name = dialog.PadName, Url = dialog.PadUrl }; prefs.Pads.Add(pad); }
-                else { DisposePad(pad); pad.Name = dialog.PadName; pad.Url = dialog.PadUrl; pad.LastUrl = null; pad.BackStack.Clear(); }
+                else { DisposePad(pad); pad.Name = dialog.PadName; pad.Url = dialog.PadUrl; pad.IsSearch = false; pad.LastUrl = null; pad.BackStack.Clear(); }
                 Store.Save(prefs); _ = ActivatePad(pad);
             }
         } finally { modal = false; outsideSince = DateTime.UtcNow; }
     }
-    void Settings_Click(object sender, RoutedEventArgs e)
+    async void Settings_Click(object sender, RoutedEventArgs e)
     {
         modal = true;
         try {
+            string oldEngine = prefs.SearchEngine;
             var dialog = new SettingsWindow(prefs) { Owner = this };
-            if (dialog.ShowDialog() == true) { Store.Save(prefs); Place(); }
+            if (dialog.ShowDialog() == true) {
+                if (oldEngine != prefs.SearchEngine) {
+                    foreach (var pad in prefs.Pads.Where(x => x.IsSearch)) DisposePad(pad);
+                    var current = prefs.Pads.FirstOrDefault(x => x.Id == active);
+                    if (current?.IsSearch == true) await ActivatePad(current, snapshot: false);
+                }
+                RenderRail(); Place(); Status.Text = "设置已保存 · 搜索引擎：" + new Uri(prefs.SearchEngine.Replace("{query}", "")).Host;
+            }
         } finally { modal = false; outsideSince = DateTime.UtcNow; }
     }
-    const string NotesHtml = """
-    <!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>随手记</title>
-    <style>*{box-sizing:border-box}body{margin:0;padding:32px 26px;background:#f9f8f4;color:#283141;font:15px 'Segoe UI',sans-serif}small{color:#8490a2;letter-spacing:2px}h1{font-size:30px;font-weight:500;margin:18px 0 6px}p{color:#8a91a0;font-size:12px}textarea{resize:none;width:100%;height:calc(100vh - 210px);border:0;outline:none;background:transparent;color:#364151;font:15px/1.9 'Segoe UI',sans-serif}footer{font-size:11px;color:#98a0ac}</style>
-    <small>YOUR QUIET SPACE</small><h1>随手记。</h1><p>暂存想法、链接，或今天的一件小事。</p><textarea id="note" placeholder="从这里开始…"></textarea><footer id="state">仅保存在这台电脑 · 不上传云端</footer>
-    <script>const n=document.querySelector('#note');try{n.value=localStorage.getItem('notes')||''}catch{}n.addEventListener('input',()=>{try{localStorage.setItem('notes',n.value);document.querySelector('#state').textContent='已保存到本机 · '+new Date().toLocaleTimeString()}catch{document.querySelector('#state').textContent='保存失败，请先复制备份'}})</script></html>
-    """;
 }
